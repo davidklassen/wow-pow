@@ -90,12 +90,18 @@ func main() {
 	h := &quoteHandler{db: db}
 
 	srv := server.New(*addr, h, *difficulty, *timeout)
-	srv.Start()
+	if err = srv.Start(); err != nil {
+		slog.Error("failed to start server", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	slog.Info("received quit signal", slog.String("signal", (<-sig).String()))
 
-	srv.Stop()
+	if err = srv.Stop(); err != nil {
+		slog.Error("failed to stop server", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	slog.Info("bye bye")
 }

@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-// Generate returns a random string of length n.
+// Generate returns a random base64 string of length n.
 func Generate(n int) string {
 	// one byte is 1/3 wider than a base 64 value, 2^8 vs 2^6.
 	buff := make([]byte, int(math.Ceil(float64(n)/1.33333)))

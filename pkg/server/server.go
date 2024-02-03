@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net"
 	"net/textproto"
-	"os"
 	"sync"
 	"time"
 
@@ -52,6 +51,8 @@ func (s *Server) serve(conn net.Conn) {
 
 	reader := textproto.NewReader(bufio.NewReader(conn))
 	for {
+		start := time.Now()
+
 		if err := conn.SetDeadline(time.Now().Add(s.timeout)); err != nil {
 			slog.Error("failed to set connection deadline")
 			return
@@ -67,7 +68,7 @@ func (s *Server) serve(conn net.Conn) {
 
 		data := challenge.Generate(dataLen)
 		if _, err = fmt.Fprintf(conn, "%d:%s\n", s.difficulty, data); err != nil {
-			slog.Error("failed to send challenge")
+			slog.Error("failed to send challenge", slog.String("error", err.Error()))
 			return
 		}
 
@@ -79,7 +80,11 @@ func (s *Server) serve(conn net.Conn) {
 			return
 		}
 		if !challenge.Verify(data, solution, s.difficulty) {
-			slog.Error("incorrect solution")
+			slog.Warn("incorrect solution",
+				slog.String("data", data),
+				slog.String("solution", solution),
+				slog.Int("difficulty", s.difficulty),
+			)
 			return
 		}
 
@@ -87,15 +92,18 @@ func (s *Server) serve(conn net.Conn) {
 			slog.Error("failed to handle request", slog.String("error", err.Error()))
 			return
 		}
+		slog.Info("request handled",
+			slog.String("raddr", conn.RemoteAddr().String()),
+			slog.Duration("duration", time.Since(start)),
+		)
 	}
 }
 
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	var err error
 	s.listener, err = net.Listen("tcp", s.addr)
 	if err != nil {
-		slog.Error("failed to listen", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to create listener: %w", err)
 	}
 	slog.Info("accepting connections", slog.String("address", s.addr))
 
@@ -114,12 +122,15 @@ func (s *Server) Start() {
 			go s.serve(conn)
 		}
 	}()
+	return nil
 }
 
-func (s *Server) Stop() {
+func (s *Server) Stop() error {
 	if err := s.listener.Close(); err != nil {
-		slog.Error("failed to close listener", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("failed to close listener: %w", err)
 	}
+	slog.Info("stopped listening", slog.String("address", s.addr))
 	s.wg.Wait()
+	slog.Info("server stopped")
+	return nil
 }

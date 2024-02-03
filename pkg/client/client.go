@@ -22,16 +22,11 @@ func New(addr string) *Client {
 }
 
 func (c *Client) Connect() error {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", c.addr)
-	if err != nil {
-		return fmt.Errorf("failed to resolve tcp address: %w", err)
-	}
-
-	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	var err error
+	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
 		return fmt.Errorf("failed to dial tcp: %w", err)
 	}
-
 	return nil
 }
 
