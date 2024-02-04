@@ -135,6 +135,27 @@ docker run -p 1111:1111 wow
 docker run --net=host client -v -n 3 -c 3
 ```
 
+### Testing
+
+To test the failure scenario, you can use the `telnet` application:
+
+```
+telnet localhost 1111
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+get
+4:Oz7FBPiu3tOE
+12345
+Connection closed by foreign host.
+```
+
+Server will print a warning for incorrect solution:
+
+```
+2024/02/04 17:05:07 WARN failed to verify solution error="incorrect solution \"12345\" for challange \"4:Oz7FBPiu3tOE\""
+```
+
 ## Protocol Description
 
 ### Connection Establishment
