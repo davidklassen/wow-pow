@@ -2,7 +2,7 @@
 
 ## Disclaimer
 
-This project is a homework assignment and, as such, should be considered a learning exercise rather than a
+This project is a test assignment and, as such, should be considered a learning exercise rather than a
 production-ready solution.
 The implementation, especially the Proof of Work (PoW) component, is conceptual and may not align with real-world best
 practices in cryptography or network security.
@@ -17,8 +17,8 @@ Key points to note:
 2. **Level of Abstraction and Complexity**: I've tried to keep a balance between the complexity needed for a
    production-ready application and a minimal solution that gets the job done.
    The result is what I might have developed as a proof-of-concept for a new service.
-   It includes the basic code layout structure, an example of unit testing, fuzz testing, things like graceful shutdown, and basic
-   build tooling.
+   It includes the basic code layout structure, an example of unit testing, fuzz testing, things like graceful shutdown,
+   and basic build tooling.
 
 ## Table of Contents
 
@@ -137,8 +137,8 @@ docker run --net=host client -v -n 3 -c 3
 
 ### Testing
 
-To test the failure scenario, you can use the `telnet` application. 
-You might want to set a longer idle timeout for this test. 
+To test the failure scenario, you can use the `telnet` application.
+You might want to set a longer idle timeout for this test.
 
 ```shell
 docker run -p 1111:1111 wow -timeout 30s

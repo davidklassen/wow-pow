@@ -28,6 +28,7 @@ func (c *Client) connect() error {
 	return nil
 }
 
+// Quote retrieves a quote from the server.
 func (c *Client) Quote() (string, error) {
 	if c.conn == nil {
 		if err := c.connect(); err != nil {

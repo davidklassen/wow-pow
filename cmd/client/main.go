@@ -40,10 +40,9 @@ func worker(ch chan struct{}, wg *sync.WaitGroup) {
 }
 
 func printStats(start time.Time) {
-	dur := time.Since(start)
 	fmt.Println("total requests:", reqCount.Load())
 	fmt.Println("error requests:", errCount.Load())
-	fmt.Println("total duration:", dur)
+	fmt.Println("total duration:", time.Since(start))
 }
 
 func main() {
@@ -52,14 +51,19 @@ func main() {
 	start := time.Now()
 	ch := make(chan struct{})
 	var wg sync.WaitGroup
+
+	// spawn workers
 	wg.Add(*c)
 	for i := 0; i < *c; i++ {
 		go worker(ch, &wg)
 	}
 
+	// dispatch requests
 	for i := 0; i < *n; i++ {
 		ch <- struct{}{}
 	}
+
+	// shutdown
 	close(ch)
 	wg.Wait()
 	printStats(start)
