@@ -137,7 +137,12 @@ docker run --net=host client -v -n 3 -c 3
 
 ### Testing
 
-To test the failure scenario, you can use the `telnet` application:
+To test the failure scenario, you can use the `telnet` application. 
+You might want to set a longer idle timeout for this test. 
+
+```shell
+docker run -p 1111:1111 wow -timeout 30s
+```
 
 ```
 telnet localhost 1111
