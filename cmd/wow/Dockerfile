@@ -10,7 +10,7 @@ FROM gcr.io/distroless/base-debian12
 
 WORKDIR /
 
-COPY --from=build /wow /wow
+COPY --from=build /wow /app/db.txt ./
 
 USER nonroot:nonroot
 
