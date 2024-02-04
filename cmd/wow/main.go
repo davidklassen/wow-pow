@@ -24,6 +24,8 @@ var (
 	dbFile     = flag.String("db", "db.txt", "database file")
 )
 
+// quoteHandler manages the retrieval of quotes from the database.
+// It uses a round-robin method to select a quote from the database.
 type quoteHandler struct {
 	db     []string
 	nextID atomic.Uint32

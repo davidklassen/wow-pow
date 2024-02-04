@@ -19,6 +19,7 @@ const (
 	dataLen = 12
 )
 
+// Handler interface defines the contract for handling different commands received by the server.
 type Handler interface {
 	Handle(string, io.Writer) error
 }
