@@ -19,7 +19,7 @@ func New(addr string) *Client {
 	return &Client{addr: addr}
 }
 
-func (c *Client) Connect() error {
+func (c *Client) connect() error {
 	var err error
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
@@ -29,9 +29,16 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Quote() (string, error) {
-	// FIXME: check for closed connection and reestablish.
+	if c.conn == nil {
+		if err := c.connect(); err != nil {
+			return "", fmt.Errorf("failed to establish connection: %w", err)
+		}
+	}
 
 	if _, err := c.conn.Write([]byte("get\n")); err != nil {
+		// handle disconnection
+		_ = c.conn.Close()
+		c.conn = nil
 		return "", fmt.Errorf("failed to write command: %w", err)
 	}
 

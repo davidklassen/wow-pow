@@ -26,10 +26,6 @@ var (
 func worker(ch chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	cl := client.New(*addr)
-	if err := cl.Connect(); err != nil {
-		panic(err)
-	}
-
 	for range ch {
 		q, err := cl.Quote()
 		if err != nil {
