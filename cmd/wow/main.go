@@ -19,9 +19,9 @@ import (
 
 var (
 	addr       = flag.String("addr", ":1111", "application network address")
-	timeout    = flag.Duration("timeout", time.Second*3, "idle timeout")
-	difficulty = flag.Int("difficulty", 4, "challenge difficulty")
 	dbFile     = flag.String("db", "db.txt", "database file")
+	difficulty = flag.Int("difficulty", 4, "challenge difficulty")
+	timeout    = flag.Duration("timeout", time.Second*3, "connection idle timeout")
 )
 
 // quoteHandler manages the retrieval of quotes from the database.

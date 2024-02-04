@@ -57,6 +57,7 @@ func (s *Server) serve(conn net.Conn) {
 	for {
 		start := time.Now()
 
+		// reset connection idle timeout.
 		if err := conn.SetDeadline(time.Now().Add(s.timeout)); err != nil {
 			slog.Error("failed to set connection deadline")
 			return
@@ -119,6 +120,9 @@ func (s *Server) Start() error {
 			if err != nil {
 				if !errors.Is(err, net.ErrClosed) {
 					slog.Error("failed to accept connection", slog.String("error", err.Error()))
+					// FIXME: server will stop accepting connections,
+					// FIXME: while the main thread is blocked by signal handler.
+					// FIXME: should panic or Exit?
 				}
 				return
 			}
