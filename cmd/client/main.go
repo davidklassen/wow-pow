@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/davidklassen/wow-pow/pkg/client"
 )
@@ -13,6 +16,11 @@ var (
 	n       = flag.Int("n", 1, "request number")
 	c       = flag.Int("c", 1, "request concurrency")
 	verbose = flag.Bool("v", false, "print quotes")
+)
+
+var (
+	reqCount atomic.Uint64
+	errCount atomic.Uint64
 )
 
 func worker(ch chan struct{}, wg *sync.WaitGroup) {
@@ -25,17 +33,27 @@ func worker(ch chan struct{}, wg *sync.WaitGroup) {
 	for range ch {
 		q, err := cl.Quote()
 		if err != nil {
-			panic(err) // FIXME: only log and collect stats
+			log.Printf("failed to fetch quote: %v", err)
+			errCount.Add(1)
 		}
 		if *verbose {
 			fmt.Println(q)
 		}
+		reqCount.Add(1)
 	}
+}
+
+func printStats(start time.Time) {
+	dur := time.Since(start)
+	fmt.Println("total requests:", reqCount.Load())
+	fmt.Println("error requests:", errCount.Load())
+	fmt.Println("total duration:", dur)
 }
 
 func main() {
 	flag.Parse()
 
+	start := time.Now()
 	ch := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(*c)
@@ -48,4 +66,5 @@ func main() {
 	}
 	close(ch)
 	wg.Wait()
+	printStats(start)
 }
