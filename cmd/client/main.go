@@ -25,7 +25,7 @@ func worker(ch chan struct{}, wg *sync.WaitGroup) {
 	for range ch {
 		q, err := cl.Quote()
 		if err != nil {
-			panic(err)
+			panic(err) // FIXME: only log and collect stats
 		}
 		if *verbose {
 			fmt.Println(q)

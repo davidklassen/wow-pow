@@ -2,11 +2,9 @@ package client
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"net"
 	"net/textproto"
-	"strconv"
 	"strings"
 
 	"github.com/davidklassen/wow-pow/pkg/challenge"
@@ -31,6 +29,8 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Quote() (string, error) {
+	// FIXME: check for closed connection and reestablish.
+
 	if _, err := c.conn.Write([]byte("get\n")); err != nil {
 		return "", fmt.Errorf("failed to write command: %w", err)
 	}
@@ -41,17 +41,12 @@ func (c *Client) Quote() (string, error) {
 		return "", fmt.Errorf("failed to read challenge: %w", err)
 	}
 
-	parts := strings.Split(data, ":")
-	if len(parts) != 2 {
-		return "", errors.New("invalid challenge format")
-	}
-
-	bits, err := strconv.Atoi(parts[0])
+	res, err := challenge.Solve(data)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse bits: %w", err)
+		return "", fmt.Errorf("failed to solve challenge: %w", err)
 	}
 
-	if _, err = fmt.Fprintf(c.conn, "%s\n", challenge.Solve(parts[1], bits)); err != nil {
+	if _, err = fmt.Fprintf(c.conn, "%s\n", res); err != nil {
 		return "", fmt.Errorf("failed to write solution: %w", err)
 	}
 

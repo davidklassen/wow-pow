@@ -41,6 +41,9 @@ func New(addr string, handler Handler, difficulty int, timeout time.Duration) *S
 	}
 }
 
+// serve handles individual client connections.
+// It reads the client's request, sends a PoW challenge, verifies the solution,
+// and then processes the command if the verification is successful.
 func (s *Server) serve(conn net.Conn) {
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -66,8 +69,8 @@ func (s *Server) serve(conn net.Conn) {
 			return
 		}
 
-		data := challenge.Generate(dataLen)
-		if _, err = fmt.Fprintf(conn, "%d:%s\n", s.difficulty, data); err != nil {
+		data := challenge.Generate(dataLen, s.difficulty)
+		if _, err = fmt.Fprintf(conn, "%s\n", data); err != nil {
 			slog.Error("failed to send challenge", slog.String("error", err.Error()))
 			return
 		}
@@ -79,12 +82,9 @@ func (s *Server) serve(conn net.Conn) {
 			}
 			return
 		}
-		if !challenge.Verify(data, solution, s.difficulty) {
-			slog.Warn("incorrect solution",
-				slog.String("data", data),
-				slog.String("solution", solution),
-				slog.Int("difficulty", s.difficulty),
-			)
+
+		if err = challenge.Verify(data, solution); err != nil {
+			slog.Warn("failed to verify solution", slog.String("error", err.Error()))
 			return
 		}
 
@@ -92,10 +92,13 @@ func (s *Server) serve(conn net.Conn) {
 			slog.Error("failed to handle request", slog.String("error", err.Error()))
 			return
 		}
+
 		slog.Info("request handled",
-			slog.String("raddr", conn.RemoteAddr().String()),
+			slog.String("remote_address", conn.RemoteAddr().String()),
 			slog.Duration("duration", time.Since(start)),
 		)
+
+		// FIXME: should check for stopped state
 	}
 }
 
