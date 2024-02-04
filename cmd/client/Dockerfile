@@ -4,13 +4,13 @@ WORKDIR /app
 
 COPY . .
 
-RUN go build -o /client ./cmd/client
+RUN go build ./cmd/client
 
 FROM gcr.io/distroless/base-debian12
 
 WORKDIR /
 
-COPY --from=build /client /client
+COPY --from=build /app/client /client
 
 USER nonroot:nonroot
 

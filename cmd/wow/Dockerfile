@@ -4,13 +4,13 @@ WORKDIR /app
 
 COPY . .
 
-RUN go build -o /wow ./cmd/wow
+RUN go build ./cmd/wow
 
 FROM gcr.io/distroless/base-debian12
 
 WORKDIR /
 
-COPY --from=build /wow /app/db.txt ./
+COPY --from=build /app/wow /app/db.txt ./
 
 USER nonroot:nonroot
 
