@@ -35,7 +35,6 @@ func (h *quoteHandler) quote() string {
 	if len(h.db) == 0 {
 		return "hello, world\n--Brian Kernighan, Programming in C: A Tutorial\n"
 	}
-
 	return h.db[int(h.nextID.Add(1))%len(h.db)]
 }
 

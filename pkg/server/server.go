@@ -31,6 +31,7 @@ type Server struct {
 	handler    Handler
 	timeout    time.Duration
 	difficulty int
+	stop       chan struct{}
 }
 
 func New(addr string, handler Handler, difficulty int, timeout time.Duration) *Server {
@@ -39,6 +40,7 @@ func New(addr string, handler Handler, difficulty int, timeout time.Duration) *S
 		handler:    handler,
 		timeout:    timeout,
 		difficulty: difficulty,
+		stop:       make(chan struct{}),
 	}
 }
 
@@ -55,52 +57,56 @@ func (s *Server) serve(conn net.Conn) {
 
 	reader := textproto.NewReader(bufio.NewReader(conn))
 	for {
-		start := time.Now()
-
-		// reset connection idle timeout.
-		if err := conn.SetDeadline(time.Now().Add(s.timeout)); err != nil {
-			slog.Error("failed to set connection deadline")
+		select {
+		case <-s.stop:
+			// shutting down, close the connection
 			return
-		}
+		default:
+			start := time.Now()
 
-		cmd, err := reader.ReadLine()
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				slog.Error("failed to read request", slog.String("error", err.Error()))
+			// reset connection idle timeout.
+			if err := conn.SetDeadline(time.Now().Add(s.timeout)); err != nil {
+				slog.Error("failed to set connection deadline")
+				return
 			}
-			return
-		}
 
-		data := challenge.Generate(dataLen, s.difficulty)
-		if _, err = fmt.Fprintf(conn, "%s\n", data); err != nil {
-			slog.Error("failed to send challenge", slog.String("error", err.Error()))
-			return
-		}
-
-		solution, err := reader.ReadLine()
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				slog.Error("failed to read solution", slog.String("error", err.Error()))
+			cmd, err := reader.ReadLine()
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					slog.Error("failed to read request", slog.String("error", err.Error()))
+				}
+				return
 			}
-			return
+
+			data := challenge.Generate(dataLen, s.difficulty)
+			if _, err = fmt.Fprintf(conn, "%s\n", data); err != nil {
+				slog.Error("failed to send challenge", slog.String("error", err.Error()))
+				return
+			}
+
+			solution, err := reader.ReadLine()
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					slog.Error("failed to read solution", slog.String("error", err.Error()))
+				}
+				return
+			}
+
+			if err = challenge.Verify(data, solution); err != nil {
+				slog.Warn("failed to verify solution", slog.String("error", err.Error()))
+				return
+			}
+
+			if err = s.handler.Handle(cmd, conn); err != nil {
+				slog.Error("failed to handle request", slog.String("error", err.Error()))
+				return
+			}
+
+			slog.Info("request handled",
+				slog.String("remote_address", conn.RemoteAddr().String()),
+				slog.Duration("duration", time.Since(start)),
+			)
 		}
-
-		if err = challenge.Verify(data, solution); err != nil {
-			slog.Warn("failed to verify solution", slog.String("error", err.Error()))
-			return
-		}
-
-		if err = s.handler.Handle(cmd, conn); err != nil {
-			slog.Error("failed to handle request", slog.String("error", err.Error()))
-			return
-		}
-
-		slog.Info("request handled",
-			slog.String("remote_address", conn.RemoteAddr().String()),
-			slog.Duration("duration", time.Since(start)),
-		)
-
-		// FIXME: should check for stopped state
 	}
 }
 
@@ -120,9 +126,10 @@ func (s *Server) Start() error {
 			if err != nil {
 				if !errors.Is(err, net.ErrClosed) {
 					slog.Error("failed to accept connection", slog.String("error", err.Error()))
-					// FIXME: server will stop accepting connections,
-					// FIXME: while the main thread is blocked by signal handler.
-					// FIXME: should panic or Exit?
+					// server will stop accepting connections,
+					// while the main thread is blocked by signal handler.
+					// panic and let service orchestration restart the crashed container.
+					panic(err)
 				}
 				return
 			}
@@ -138,6 +145,7 @@ func (s *Server) Stop() error {
 		return fmt.Errorf("failed to close listener: %w", err)
 	}
 	slog.Info("stopped listening", slog.String("address", s.addr))
+	close(s.stop)
 	s.wg.Wait()
 	slog.Info("server stopped")
 	return nil
