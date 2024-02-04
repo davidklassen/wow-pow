@@ -25,12 +25,12 @@ var (
 )
 
 // quoteHandler manages the retrieval of quotes from the database.
-// It uses a round-robin method to select a quote from the database.
 type quoteHandler struct {
 	db     []string
 	nextID atomic.Uint32
 }
 
+// quote uses a round-robin method to select a quote from the database.
 func (h *quoteHandler) quote() string {
 	if len(h.db) == 0 {
 		return "hello, world\n--Brian Kernighan, Programming in C: A Tutorial\n"
@@ -38,6 +38,7 @@ func (h *quoteHandler) quote() string {
 	return h.db[int(h.nextID.Add(1))%len(h.db)]
 }
 
+// Handle implements server.Handler interface that handles get quote request.
 func (h *quoteHandler) Handle(cmd string, w io.Writer) error {
 	if cmd != "get" {
 		return errors.New("bad request")
@@ -50,7 +51,7 @@ func (h *quoteHandler) Handle(cmd string, w io.Writer) error {
 	return nil
 }
 
-func readDB(filename string) ([]string, error) {
+func loadDB(filename string) ([]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -84,9 +85,10 @@ func readDB(filename string) ([]string, error) {
 func main() {
 	flag.Parse()
 
-	db, err := readDB(*dbFile)
+	db, err := loadDB(*dbFile)
 	if err != nil {
 		slog.Error("failed to read quotes DB", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 	h := &quoteHandler{db: db}
 
